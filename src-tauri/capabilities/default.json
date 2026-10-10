@@ -8,6 +8,19 @@
   "permissions": [
     "core:default",
     "opener:default",
-    "fs:default"
+    "fs:default",
+    "fs:allow-copy-file",
+    "fs:allow-remove",
+    "fs:allow-appdata-write-recursive",
+    "fs:allow-desktop-write-recursive",
+    {
+      "identifier": "fs:scope",
+      "allow": [
+        "$APPDATA",
+        "$APPDATA/**",
+        "$DESKTOP",
+        "$DESKTOP/**"
+      ]
+    }
   ]
 }

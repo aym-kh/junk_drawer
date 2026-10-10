@@ -1,5 +1,7 @@
-import { Injectable, signal } from '@angular/core';
+import { inject, Injectable, signal } from '@angular/core';
 import { getCurrentWindow } from '@tauri-apps/api/window';
+import { DrawerStorageService } from './drawer-storage';
+import { PhysicsService } from './physics';
 
 export interface DroppedFile {
     path: string;
@@ -15,6 +17,9 @@ export class DesktopFileService {
     lastDroppedFile = signal<DroppedFile | null>(null);
     isHovering = signal<boolean>(false);
 
+    private drawerStorage = inject(DrawerStorageService);
+    private physicsService = inject(PhysicsService);
+
     constructor() {
         this.initTauriDragDropListeners();
     }
@@ -23,7 +28,7 @@ export class DesktopFileService {
         try {
             const appWindow = getCurrentWindow();
 
-            await appWindow.onDragDropEvent((event) => {
+            await appWindow.onDragDropEvent(async (event) => {
                 if (event.payload.type === 'over') {
                     this.isHovering.set(true);
                 } else if (event.payload.type === 'drop') {
@@ -31,15 +36,11 @@ export class DesktopFileService {
                     const paths = event.payload.paths;
                     const position = event.payload.position;
 
-                    paths.forEach((filePath) => {
+                    for (const filePath of paths) {
                         const fileName = filePath.split(/[/\\]/).pop() || 'Unknown File';
-                        this.lastDroppedFile.set({
-                            path: filePath,
-                            name: fileName,
-                            x: position.x,
-                            y: position.y
-                        });
-                    });
+                        await this.drawerStorage.stashFile(filePath, fileName, position.x, position.y);
+                        this.physicsService.spawnBox(150, 20);
+                    }
                 } else if (event.payload.type === 'leave') {
                     this.isHovering.set(false);
                 }

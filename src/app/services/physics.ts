@@ -40,7 +40,7 @@ export class PhysicsService {
 
     public spawnBox(x: number, y: number): void {
         if (!this.engine) return;
-        const box = Matter.Bodies.rectangle(x || 150, 20, 50, 50, {
+        const box = Matter.Bodies.rectangle(x || 150, y || 20, 50, 50, {
             restitution: 0.4,
             friction: 0.3,
             render: {
