@@ -39,7 +39,8 @@ export class DesktopFileService {
                     for (const filePath of paths) {
                         const fileName = filePath.split(/[/\\]/).pop() || 'Unknown File';
                         await this.drawerStorage.stashFile(filePath, fileName, position.x, position.y);
-                        this.physicsService.spawnBox(150, 20);
+                        const newItem = this.drawerStorage.stashedItems().slice(-1)[0];
+                        this.physicsService.spawnBox(150, 20, newItem.id);
                     }
                 } else if (event.payload.type === 'leave') {
                     this.isHovering.set(false);

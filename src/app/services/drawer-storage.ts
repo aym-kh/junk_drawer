@@ -85,4 +85,29 @@ export class DrawerStorageService {
             console.error('Error stashing file:', error);
         }
     }
+
+    public async restoreFile(id: string): Promise<void> {
+        try {
+            const item = this.stashedItems().find(i => i.id === id);
+            if (!item) return;
+
+            // Copy file back from junk_drawer storage to original desktop path
+            await copyFile(item.stashedPath, item.originalPath, {
+                fromPathBaseDir: BaseDirectory.AppData,
+                toPathBaseDir: undefined
+            });
+
+            // Remove file from junk_drawer storage
+            await remove(item.stashedPath, {
+                baseDir: BaseDirectory.AppData
+            });
+
+            // Update manifest signal and storage
+            const updated = this.stashedItems().filter(i => i.id !== id);
+            this.stashedItems.set(updated);
+            await this.saveManifest(updated);
+        } catch (error) {
+            console.error('Error restoring file:', error);
+        }
+    }
 }
