@@ -7,12 +7,12 @@
 * [x] Build basic Angular component structure for the drawer and desk surface.
 
 ## Phase 2: Physics & Canvas Engine Integration
-* [ ] Inject **Matter.js** via `PhysicsService`.
-* [ ] Map file drop coordinates into physics body creations inside `<app-canvas>`.
+* [x] Inject **Matter.js** via `PhysicsService`.
+* [x] Map file drop coordinates into physics body creations inside `<app-canvas>`.
 * [ ] Implement "Slam Physics" to make desk-surface items (mug/plant) react to drawer close velocity.
 
 ## Phase 3: Drag-and-Drop & File System Bridge
-* [ ] Implement native OS drag-and-drop event listening via Tauri.
+* [x] Implement native OS drag-and-drop event listening via Tauri.
 * [ ] Configure file storage logic (moving dropped items to `.junk_drawer` storage folder).
 * [ ] Add double-click restore/launch functionality for stashed files.
 
