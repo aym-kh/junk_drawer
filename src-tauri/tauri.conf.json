@@ -14,7 +14,10 @@
       {
         "title": "junk_drawer",
         "width": 800,
-        "height": 600
+        "height": 600,
+        "decorations": false,
+        "transparent": true,
+        "alwaysOnTop": false
       }
     ],
     "security": {
