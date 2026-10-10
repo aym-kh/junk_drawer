@@ -13,8 +13,8 @@
 
 ## Phase 3: Drag-and-Drop & File System Bridge
 * [x] Implement native OS drag-and-drop event listening via Tauri.
-* [ ] Configure file storage logic (moving dropped items to `.junk_drawer` storage folder).
-* [ ] Add double-click restore/launch functionality for stashed files.
+* [x] Configure file storage logic (moving dropped items to `.junk_drawer` storage folder).
+* [x] Add double-click restore/launch functionality for stashed files.
 
 ## Phase 4: Comedic Touches, Audio & Polish
 * [ ] Integrate velocity-aware sound effects in `AudioService`.
