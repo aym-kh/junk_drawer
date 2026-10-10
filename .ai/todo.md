@@ -2,9 +2,9 @@
 
 
 ## Phase 1: Native Overlay & Angular Base Setup
-* [ ] Initialize Tauri v2 project with Angular frontend.
-* [ ] Configure `tauri.conf.json` for borderless, transparent, overlay-ready windowing.
-* [ ] Build basic Angular component structure for the drawer and desk surface.
+* [x] Initialize Tauri v2 project with Angular frontend.
+* [x] Configure `tauri.conf.json` for borderless, transparent, overlay-ready windowing.
+* [x] Build basic Angular component structure for the drawer and desk surface.
 
 ## Phase 2: Physics & Canvas Engine Integration
 * [ ] Inject **Matter.js** via `PhysicsService`.
