@@ -313,6 +313,19 @@ export class PhysicsService {
         return name.length > maxLength ? `${name.slice(0, maxLength - 1)}…` : name;
     }
 
+    public clearAll(): void {
+        if (!this.engine) return;
+
+        const allBodies = Matter.Composite.allBodies(this.engine.world);
+        for (const body of allBodies) {
+            if (body.isStatic) continue;
+            Matter.Composite.remove(this.engine.world, body);
+        }
+
+        this.bodyToFileMap.clear();
+        this.bodyTypeMap.clear();
+    }
+
     public destroy(): void {
         window.removeEventListener('mousemove', this.handleWindowMouseMove);
         window.removeEventListener('mouseup', this.handleWindowMouseUp);

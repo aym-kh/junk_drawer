@@ -12,8 +12,10 @@
     "fs:default",
     "fs:allow-copy-file",
     "fs:allow-remove",
+    "fs:allow-read-dir",
     "fs:allow-appdata-write-recursive",
     "fs:allow-desktop-write-recursive",
+    "fs:allow-desktop-read-recursive",
     {
       "identifier": "fs:scope",
       "allow": [
