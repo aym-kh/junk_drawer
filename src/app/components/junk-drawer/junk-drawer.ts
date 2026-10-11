@@ -1,6 +1,7 @@
 import { CommonModule } from '@angular/common';
-import { Component, signal } from '@angular/core';
+import { Component, OnInit, signal } from '@angular/core';
 import { CanvasPhysicsComponent } from '../canvas-physics/canvas-physics';
+import { currentMonitor, getCurrentWindow, LogicalPosition } from '@tauri-apps/api/window';
 
 @Component({
   imports: [CommonModule, CanvasPhysicsComponent],
@@ -8,8 +9,31 @@ import { CanvasPhysicsComponent } from '../canvas-physics/canvas-physics';
   styleUrl: './junk-drawer.css',
   templateUrl: './junk-drawer.html',
 })
-export class JunkDrawer {
+export class JunkDrawer implements OnInit {
   isOpen = signal<boolean>(false);
+
+  async ngOnInit() {
+    try {
+      const appWindow = await getCurrentWindow();
+      const monitor = await currentMonitor();
+
+      if (monitor) {
+        const screenWidth = monitor.size.width / monitor.scaleFactor;
+        const screenHeight = monitor.size.height / monitor.scaleFactor;
+
+        // Window dimensions defined in tauri.conf.json
+        const windowWidth = 350;
+        const windowHeight = 450;
+
+        const targetX = screenWidth - windowWidth;
+        const targetY = screenHeight - windowHeight;
+
+        await appWindow.setPosition(new LogicalPosition(targetX, targetY));
+      }
+    } catch (error) {
+      console.warn('Failed to snap window position:', error);
+    }
+  }
 
   toggleDrawer() {
     this.isOpen.update(open => !open);
