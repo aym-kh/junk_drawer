@@ -16,6 +16,8 @@
     "fs:allow-appdata-write-recursive",
     "fs:allow-desktop-write-recursive",
     "fs:allow-desktop-read-recursive",
+    "global-shortcut:allow-register",
+    "global-shortcut:allow-unregister",
     {
       "identifier": "fs:scope",
       "allow": [
