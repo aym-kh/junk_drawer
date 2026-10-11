@@ -10,7 +10,7 @@ export class PhysicsService {
     private engine!: Matter.Engine;
     private render!: Matter.Render;
     private runner!: Matter.Runner;
-    private bodyToFileMap = new Map<number, string>(); // body.id -> file.id
+    private bodyToFileMap = new Map<number, { id: string; name: string }>(); // body.id -> stashed file
     private bodyTypeMap = new Map<number, string>(); // body.id -> fileType
 
     private drawerStorage = inject(DrawerStorageService);
@@ -37,7 +37,13 @@ export class PhysicsService {
         Matter.Events.on(this.render, 'afterRender', () => {
             const context = this.render.context;
             const allBodies = Matter.Composite.allBodies(this.engine.world);
+            const w = 44;
+            const h = 54;
+            const hw = w / 2;
+            const hh = h / 2;
 
+            // Draw each icon immediately followed by its name label, so every
+            // label keeps the same place in the draw order as its icon
             for (const body of allBodies) {
                 if (body.isStatic) continue;
 
@@ -48,11 +54,6 @@ export class PhysicsService {
                 context.save();
                 context.translate(x, y);
                 context.rotate(angle);
-
-                const w = 44;
-                const h = 54;
-                const hw = w / 2;
-                const hh = h / 2;
 
                 if (fileType === 'image') {
                     // --- IMAGE FILE ICON (Dark slate card with a picture/mountain preview motif) ---
@@ -144,6 +145,20 @@ export class PhysicsService {
                 }
 
                 context.restore();
+
+                // Screen-aligned name label below the icon
+                const stashedFile = this.bodyToFileMap.get(body.id);
+                if (stashedFile?.name) {
+                    context.save();
+                    context.font = '600 10px system-ui, sans-serif';
+                    context.textAlign = 'center';
+                    context.textBaseline = 'top';
+                    context.shadowColor = 'rgba(0, 0, 0, 0.75)';
+                    context.shadowBlur = 4;
+                    context.fillStyle = '#e2e8f0';
+                    context.fillText(this.truncateName(stashedFile.name), x, y + hh + 5);
+                    context.restore();
+                }
             }
         });
 
@@ -158,10 +173,11 @@ export class PhysicsService {
         this.runner = Matter.Runner.create();
         Matter.Runner.run(this.runner, this.engine);
 
+        this.render.canvas.addEventListener('click', (event) => this.handleCanvasClick(event));
         this.render.canvas.addEventListener('dblclick', (event) => this.handleCanvasDoubleClick(event));
     }
 
-    public spawnBox(x: number, y: number, fileId: string, fileType: 'image' | 'archive' | 'folder' | 'document' = 'document'): void {
+    public spawnBox(x: number, y: number, fileId: string, fileType: 'image' | 'archive' | 'folder' | 'document' = 'document', fileName = ''): void {
         if (!this.engine) return;
         const box = Matter.Bodies.rectangle(x || 150, y || 20, 50, 50, {
             restitution: 0.4,
@@ -171,11 +187,30 @@ export class PhysicsService {
             }
         });
 
-        // Map body ID to file ID
-        this.bodyToFileMap.set(box.id, fileId);
+        // Map body ID to stashed file identity
+        this.bodyToFileMap.set(box.id, { id: fileId, name: fileName });
         this.bodyTypeMap.set(box.id, fileType);
         Matter.Composite.add(this.engine.world, box);
         this.audioService.playThud();
+    }
+
+    private handleCanvasClick(event: MouseEvent): void {
+        const rect = this.render.canvas.getBoundingClientRect();
+        const mouseX = event.clientX - rect.left;
+        const mouseY = event.clientY - rect.top;
+
+        // Find all bodies under the mouse click point
+        const allBodies = Matter.Composite.allBodies(this.engine.world);
+        const clickedBodies = Matter.Query.point(allBodies, { x: mouseX, y: mouseY });
+
+        // The last match is the topmost rendered body
+        const topBody = clickedBodies[clickedBodies.length - 1];
+        if (topBody && !topBody.isStatic) {
+            // Re-adding the body moves it to the end of the composite,
+            // so the renderer draws it above everything else
+            Matter.Composite.remove(this.engine.world, topBody);
+            Matter.Composite.add(this.engine.world, topBody);
+        }
     }
 
     private handleCanvasDoubleClick(event: MouseEvent): void {
@@ -188,10 +223,10 @@ export class PhysicsService {
         const clickedBodies = Matter.Query.point(allBodies, { x: mouseX, y: mouseY });
 
         for (const body of clickedBodies) {
-            const fileId = this.bodyToFileMap.get(body.id);
-            if (fileId) {
+            const stashedFile = this.bodyToFileMap.get(body.id);
+            if (stashedFile) {
                 // 1. Restore file on filesystem & manifest
-                this.drawerStorage.restoreFile(fileId);
+                this.drawerStorage.restoreFile(stashedFile.id);
 
                 this.audioService.playPop();
                 // 2. Remove body from physics world
@@ -201,6 +236,10 @@ export class PhysicsService {
                 break;
             }
         }
+    }
+
+    private truncateName(name: string, maxLength = 18): string {
+        return name.length > maxLength ? `${name.slice(0, maxLength - 1)}…` : name;
     }
 
     public destroy(): void {
