@@ -14,7 +14,7 @@ export class PhysicsService {
     private drawerStorage = inject(DrawerStorageService);
 
     public init(container: HTMLElement): void {
-        const width = container.clientWidth || 392;
+        const width = container.clientWidth || 350;
         const height = container.clientHeight || 350;
 
         this.engine = Matter.Engine.create();
@@ -30,6 +30,63 @@ export class PhysicsService {
             }
         });
 
+        // Custom render hook to draw document icons instead of plain rectangles
+        Matter.Events.on(this.render, 'afterRender', () => {
+            const context = this.render.context;
+            const allBodies = Matter.Composite.allBodies(this.engine.world);
+
+            for (const body of allBodies) {
+                // Skip static boundary walls
+                if (body.isStatic) continue;
+
+                const { x, y } = body.position;
+                const angle = body.angle;
+
+                context.save();
+                context.translate(x, y);
+                context.rotate(angle);
+
+                // Document dimensions (44x54)
+                const w = 44;
+                const h = 54;
+                const hw = w / 2;
+                const hh = h / 2;
+
+                // 1. Draw Document Base (White/Light Paper)
+                context.fillStyle = '#f8fafc';
+                context.strokeStyle = '#cbd5e1';
+                context.lineWidth = 1.5;
+
+                context.beginPath();
+                context.moveTo(-hw, -hh);
+                context.lineTo(hw - 10, -hh); // Fold corner cut
+                context.lineTo(hw, -hh + 10);
+                context.lineTo(hw, hh);
+                context.lineTo(-hw, hh);
+                context.closePath();
+                context.fill();
+                context.stroke();
+
+                // 2. Draw Folded Corner Triangles
+                context.fillStyle = '#e2e8f0';
+                context.beginPath();
+                context.moveTo(hw - 10, -hh);
+                context.lineTo(hw, -hh + 10);
+                context.lineTo(hw - 10, -hh + 10);
+                context.closePath();
+                context.fill();
+                context.stroke();
+
+                // 3. Draw Mini Text Lines on the Document
+                context.fillStyle = '#94a3b8';
+                context.fillRect(-hw + 8, -hh + 16, 20, 3);
+                context.fillRect(-hw + 8, -hh + 24, 24, 3);
+                context.fillRect(-hw + 8, -hh + 32, 16, 3);
+
+                context.restore();
+            }
+        });
+
         // Floor and walls
         const ground = Matter.Bodies.rectangle(width / 2, height + 10, width, 30, { isStatic: true });
         const leftWall = Matter.Bodies.rectangle(-10, height / 2, 30, height, { isStatic: true });
@@ -41,7 +98,6 @@ export class PhysicsService {
         this.runner = Matter.Runner.create();
         Matter.Runner.run(this.runner, this.engine);
 
-        // Listen for double-clicks on the canvas to restore files
         this.render.canvas.addEventListener('dblclick', (event) => this.handleCanvasDoubleClick(event));
     }
 
@@ -51,9 +107,7 @@ export class PhysicsService {
             restitution: 0.4,
             friction: 0.3,
             render: {
-                fillStyle: '#eceff4',
-                strokeStyle: '#b9c0cd',
-                lineWidth: 2
+                visible: false // We'll handle rendering the file icon separately,
             }
         });
 
