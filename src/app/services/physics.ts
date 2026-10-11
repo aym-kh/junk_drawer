@@ -1,6 +1,7 @@
 import { inject, Injectable } from '@angular/core';
 import Matter from 'matter-js';
 import { DrawerStorageService } from './drawer-storage';
+import { AudioService } from './audio';
 
 @Injectable({
     providedIn: 'root'
@@ -13,6 +14,7 @@ export class PhysicsService {
     private bodyTypeMap = new Map<number, string>(); // body.id -> fileType
 
     private drawerStorage = inject(DrawerStorageService);
+    private audioService = inject(AudioService);
 
     public init(container: HTMLElement): void {
         const width = container.clientWidth || 350;
@@ -173,6 +175,7 @@ export class PhysicsService {
         this.bodyToFileMap.set(box.id, fileId);
         this.bodyTypeMap.set(box.id, fileType);
         Matter.Composite.add(this.engine.world, box);
+        this.audioService.playThud();
     }
 
     private handleCanvasDoubleClick(event: MouseEvent): void {
@@ -190,6 +193,7 @@ export class PhysicsService {
                 // 1. Restore file on filesystem & manifest
                 this.drawerStorage.restoreFile(fileId);
 
+                this.audioService.playPop();
                 // 2. Remove body from physics world
                 Matter.Composite.remove(this.engine.world, body);
                 this.bodyToFileMap.delete(body.id);

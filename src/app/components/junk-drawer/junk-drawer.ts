@@ -1,7 +1,8 @@
 import { CommonModule } from '@angular/common';
-import { Component, OnInit, signal } from '@angular/core';
+import { Component, inject, OnInit, signal } from '@angular/core';
 import { CanvasPhysicsComponent } from '../canvas-physics/canvas-physics';
 import { currentMonitor, getCurrentWindow, LogicalPosition } from '@tauri-apps/api/window';
+import { AudioService } from '../../services/audio';
 
 @Component({
   imports: [CommonModule, CanvasPhysicsComponent],
@@ -11,6 +12,7 @@ import { currentMonitor, getCurrentWindow, LogicalPosition } from '@tauri-apps/a
 })
 export class JunkDrawer implements OnInit {
   isOpen = signal<boolean>(false);
+  private audioService = inject(AudioService);
 
   async ngOnInit() {
     try {
@@ -37,6 +39,6 @@ export class JunkDrawer implements OnInit {
 
   toggleDrawer() {
     this.isOpen.update(open => !open);
-    // TODO: Trigger velocity-aware slide audio via AudioService
+    this.audioService.playClick();
   }
 }
