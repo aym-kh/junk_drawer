@@ -17,7 +17,7 @@
 * [x] Add double-click restore/launch functionality for stashed files.
 
 ## Phase 4: Comedic Touches, Audio & Polish
-* [ ] Integrate velocity-aware sound effects in `AudioService`.
-* [ ] Implement drawer jamming mechanism when overcrowded.
+* [x] Integrate velocity-aware sound effects in `AudioService`.
+* [x] Implement drawer jamming mechanism when overcrowded.
 * [ ] Add tangled cables, dust bunnies, and un-deletable rogue junk items.
-* [ ] Configure global "Emergency Sweep" hotkey.
+* [x] Configure global "Emergency Sweep" hotkey.
