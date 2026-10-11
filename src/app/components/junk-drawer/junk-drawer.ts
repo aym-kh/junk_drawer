@@ -3,6 +3,7 @@ import { Component, inject, OnInit, signal } from '@angular/core';
 import { CanvasPhysicsComponent } from '../canvas-physics/canvas-physics';
 import { currentMonitor, getCurrentWindow, LogicalPosition } from '@tauri-apps/api/window';
 import { AudioService } from '../../services/audio';
+import { DrawerStorageService } from '../../services/drawer-storage';
 
 @Component({
   imports: [CommonModule, CanvasPhysicsComponent],
@@ -13,6 +14,7 @@ import { AudioService } from '../../services/audio';
 export class JunkDrawer implements OnInit {
   isOpen = signal<boolean>(false);
   private audioService = inject(AudioService);
+  private drawerStorage = inject(DrawerStorageService);
 
   async ngOnInit() {
     try {
@@ -39,6 +41,12 @@ export class JunkDrawer implements OnInit {
 
   toggleDrawer() {
     this.isOpen.update(open => !open);
-    this.audioService.playClick();
+
+    // An overstuffed drawer squeaks on its hinge
+    if (this.drawerStorage.stashedItems().length > 20) {
+      this.audioService.playSqueak();
+    } else {
+      this.audioService.playClick();
+    }
   }
 }
