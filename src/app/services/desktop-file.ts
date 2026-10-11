@@ -2,6 +2,7 @@ import { inject, Injectable, signal } from '@angular/core';
 import { getCurrentWindow } from '@tauri-apps/api/window';
 import { desktopDir, join } from '@tauri-apps/api/path';
 import { readDir } from '@tauri-apps/plugin-fs';
+import { register } from '@tauri-apps/plugin-global-shortcut';
 import { DrawerStorageService } from './drawer-storage';
 import { PhysicsService } from './physics';
 import { AudioService } from './audio';
@@ -56,19 +57,31 @@ export class DesktopFileService {
         }
     }
 
-    private initShortcutListeners(): void {
-        window.addEventListener('keydown', (event) => {
-            if (event.repeat || !event.shiftKey || !(event.ctrlKey || event.metaKey)) return;
+    private async initShortcutListeners(): Promise<void> {
+        try {
+            // System-wide hotkeys, so the sweep works even from the desktop itself
+            await register('CommandOrControl+Shift+D', (event) => {
+                if (event.state === 'Pressed') this.sweepDesktop();
+            });
+            await register('CommandOrControl+Shift+R', (event) => {
+                if (event.state === 'Pressed') this.restoreAll();
+            });
+        } catch (error) {
+            // Not running inside Tauri (e.g. `ng serve`) — fall back to window shortcuts
+            console.warn('Global shortcut registration failed, falling back to window shortcuts', error);
+            window.addEventListener('keydown', (event) => {
+                if (event.repeat || !event.shiftKey || !(event.ctrlKey || event.metaKey)) return;
 
-            const key = event.key.toLowerCase();
-            if (key === 'd') {
-                event.preventDefault();
-                this.sweepDesktop();
-            } else if (key === 'r') {
-                event.preventDefault();
-                this.restoreAll();
-            }
-        });
+                const key = event.key.toLowerCase();
+                if (key === 'd') {
+                    event.preventDefault();
+                    this.sweepDesktop();
+                } else if (key === 'r') {
+                    event.preventDefault();
+                    this.restoreAll();
+                }
+            });
+        }
     }
 
     // Panic sweep: stash every file on the desktop into the drawer
