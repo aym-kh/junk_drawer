@@ -25,8 +25,8 @@ export class JunkDrawer implements OnInit {
         const windowWidth = 350;
         const windowHeight = 450;
 
-        const targetX = screenWidth - windowWidth;
-        const targetY = screenHeight - windowHeight;
+        const targetX = screenWidth - windowWidth - 10;
+        const targetY = screenHeight - windowHeight - 30;
 
         await appWindow.setPosition(new LogicalPosition(targetX, targetY));
       }
