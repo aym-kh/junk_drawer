@@ -91,6 +91,23 @@ export class PhysicsService {
                     context.stroke();
                     context.setLineDash([]);
 
+                } else if (fileType === 'folder') {
+                    // --- FOLDER ICON (Amber folder with a tab) ---
+                    context.fillStyle = '#fbbf24';
+                    context.strokeStyle = '#d97706';
+                    context.lineWidth = 1.5;
+
+                    context.beginPath();
+                    context.moveTo(-hw, -hh + 12);
+                    context.lineTo(-hw + 8, -hh + 12);
+                    context.lineTo(-hw + 12, -hh + 4);
+                    context.lineTo(hw, -hh + 4);
+                    context.lineTo(hw, hh);
+                    context.lineTo(-hw, hh);
+                    context.closePath();
+                    context.fill();
+                    context.stroke();
+
                 } else {
                     // --- STANDARD DOCUMENT ICON (White paper with folded corner) ---
                     context.fillStyle = '#f8fafc';
@@ -176,6 +193,7 @@ export class PhysicsService {
                 // 2. Remove body from physics world
                 Matter.Composite.remove(this.engine.world, body);
                 this.bodyToFileMap.delete(body.id);
+                this.bodyTypeMap.delete(body.id);
                 break;
             }
         }

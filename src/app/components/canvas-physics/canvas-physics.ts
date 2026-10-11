@@ -32,7 +32,7 @@ export class CanvasPhysicsComponent implements OnInit, OnDestroy {
         items.forEach((item, index) => {
           // Spread them out slightly across the X axis so they don't overlap perfectly
           const randomX = 100 + (index * 40) % 200;
-          this.physicsService.spawnBox(randomX, 20 + (index * 10), item.id);
+          this.physicsService.spawnBox(randomX, 20 + (index * 10), item.id, item.fileType);
         });
       }
     });
