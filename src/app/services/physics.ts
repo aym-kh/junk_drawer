@@ -12,6 +12,8 @@ export class PhysicsService {
     private runner!: Matter.Runner;
     private bodyToFileMap = new Map<number, { id: string; name: string }>(); // body.id -> stashed file
     private bodyTypeMap = new Map<number, string>(); // body.id -> fileType
+    private worldWidth = 350;
+    private worldHeight = 350;
 
     private drawerStorage = inject(DrawerStorageService);
     private audioService = inject(AudioService);
@@ -19,6 +21,8 @@ export class PhysicsService {
     public init(container: HTMLElement): void {
         const width = container.clientWidth || 350;
         const height = container.clientHeight || 350;
+        this.worldWidth = width;
+        this.worldHeight = height;
 
         this.engine = Matter.Engine.create();
 
@@ -177,9 +181,19 @@ export class PhysicsService {
         this.render.canvas.addEventListener('dblclick', (event) => this.handleCanvasDoubleClick(event));
     }
 
-    public spawnBox(x: number, y: number, fileId: string, fileType: 'image' | 'archive' | 'folder' | 'document' = 'document', fileName = ''): void {
+    public spawnBox(x: number | null, y: number | null, fileId: string, fileType: 'image' | 'archive' | 'folder' | 'document' = 'document', fileName = ''): void {
         if (!this.engine) return;
-        const box = Matter.Bodies.rectangle(x || 150, y || 20, 50, 50, {
+
+        // Aim at the drop point, or pick a random spot in the drawer
+        const margin = 45;
+        const targetX = x ?? (margin + Math.random() * (this.worldWidth - margin * 2));
+        const targetY = y ?? (margin + Math.random() * (this.worldHeight - margin * 2));
+
+        // Jitter so files dropped on the same spot don't stack in one pile
+        const throwX = this.clamp(targetX + (Math.random() - 0.5) * 60, margin, this.worldWidth - margin);
+        const throwY = this.clamp(targetY + (Math.random() - 0.5) * 40, margin, this.worldHeight - margin);
+
+        const box = Matter.Bodies.rectangle(throwX, throwY, 50, 50, {
             restitution: 0.4,
             friction: 0.3,
             render: {
@@ -187,11 +201,20 @@ export class PhysicsService {
             }
         });
 
+        // Random orientation plus a small toss so files land naturally
+        Matter.Body.setAngle(box, Math.random() * Math.PI * 2);
+        Matter.Body.setVelocity(box, { x: (Math.random() - 0.5) * 6, y: 1 + Math.random() * 2 });
+        Matter.Body.setAngularVelocity(box, (Math.random() - 0.5) * 0.3);
+
         // Map body ID to stashed file identity
         this.bodyToFileMap.set(box.id, { id: fileId, name: fileName });
         this.bodyTypeMap.set(box.id, fileType);
         Matter.Composite.add(this.engine.world, box);
         this.audioService.playThud();
+    }
+
+    private clamp(value: number, min: number, max: number): number {
+        return Math.min(Math.max(value, min), max);
     }
 
     private handleCanvasClick(event: MouseEvent): void {

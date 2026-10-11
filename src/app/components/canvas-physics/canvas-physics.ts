@@ -28,11 +28,9 @@ export class CanvasPhysicsComponent implements OnInit, OnDestroy {
       const items = this.drawerStorage.stashedItems();
       if (items.length > 0 && !this.hasInitializedItems && this.physicsService) {
         this.hasInitializedItems = true;
-        // Stagger or spawn existing items into the drawer
-        items.forEach((item, index) => {
-          // Spread them out slightly across the X axis so they don't overlap perfectly
-          const randomX = 100 + (index * 40) % 200;
-          this.physicsService.spawnBox(randomX, 20 + (index * 10), item.id, item.fileType, item.name);
+        // Scatter restored items around the drawer like they were left in it
+        items.forEach((item) => {
+          this.physicsService.spawnBox(null, null, item.id, item.fileType, item.name);
         });
       }
     });
