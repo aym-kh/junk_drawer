@@ -233,6 +233,10 @@ export class PhysicsService {
         const topBody = clickedBodies[clickedBodies.length - 1];
         if (!topBody || topBody.isStatic) return;
 
+        if (this.bodyToFileMap.has(topBody.id)) {
+            this.audioService.playSearch();
+        }
+
         // Grab the body at the exact point the cursor holds it,
         // converted into the body's local (rotated) frame
         const dx = point.x - topBody.position.x;

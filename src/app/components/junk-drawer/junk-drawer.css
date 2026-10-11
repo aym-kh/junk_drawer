@@ -9,13 +9,17 @@
 
 .drawer-container {
     position: relative;
-    transition: transform 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    transition: transform 0.7s cubic-bezier(0.175, 0.885, 0.32, 1.275);
     transform: translateY(calc(100% - 30px));
     /* Shows handle only when shut */
 }
 
 .drawer-container.open {
     transform: translateY(0);
+}
+
+.drawer-container.overstuffed {
+    transition-duration: 1.7s;
 }
 
 .drawer-top-surface {

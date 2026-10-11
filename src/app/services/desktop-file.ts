@@ -109,10 +109,10 @@ export class DesktopFileService {
             const items = [...this.drawerStorage.stashedItems()];
             for (const item of items) {
                 await this.drawerStorage.restoreFile(item.id);
+                this.audioService.playPop();
             }
 
             this.physicsService.clearAll();
-            this.audioService.playPop();
         } catch (error) {
             console.error('Failed to restore all stashed files:', error);
         }

@@ -1,4 +1,4 @@
-<div class="drawer-container" [class.open]="isOpen()">
+<div class="drawer-container" [class.open]="isOpen()" [class.overstuffed]="isOverstuffed()">
     <!-- Top surface of the desk / drawer header where mug/plant items sit -->
     <div class="drawer-top-surface" (click)="toggleDrawer()">
         <div class="drawer-handle"></div>
