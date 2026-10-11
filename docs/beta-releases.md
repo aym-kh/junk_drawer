@@ -1,10 +1,10 @@
 # Beta releases
 
-The `Beta release` GitHub Actions workflow builds Windows and macOS installers when a version tag matching `*-beta*` is pushed. It creates a GitHub pre-release and attaches Windows, Apple silicon macOS, and Intel macOS downloads.
+The `Beta release` GitHub Actions workflow builds Windows and macOS installers when a version tag matching `*-beta*` is pushed. It creates a GitHub pre-release and attaches a Windows NSIS `.exe` installer and Apple silicon and Intel macOS `.dmg` installers. Windows uses NSIS because MSI requires numeric-only prerelease version identifiers.
 
 ## Publish a beta
 
-1. Set the same beta version in `package.json`, `src-tauri/tauri.conf.json`, and `src-tauri/Cargo.toml` (for example, `0.1.0-beta.1`).
+1. Set the same beta version in `package.json`, `package-lock.json`, `src-tauri/tauri.conf.json`, `src-tauri/Cargo.toml`, and `src-tauri/Cargo.lock` (for example, `0.1.0-beta.1`).
 2. Commit the version changes, then create and push the matching tag:
 
    ```sh
