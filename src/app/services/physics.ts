@@ -51,7 +51,9 @@ export class PhysicsService {
             restitution: 0.4,
             friction: 0.3,
             render: {
-                fillStyle: '#e74c3c'
+                fillStyle: '#eceff4',
+                strokeStyle: '#b9c0cd',
+                lineWidth: 2
             }
         });
 
