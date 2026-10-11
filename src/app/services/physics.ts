@@ -14,6 +14,7 @@ export class PhysicsService {
     private bodyTypeMap = new Map<number, string>(); // body.id -> fileType
     private worldWidth = 350;
     private worldHeight = 350;
+    private dragConstraint: Matter.Constraint | null = null;
 
     private drawerStorage = inject(DrawerStorageService);
     private audioService = inject(AudioService);
@@ -177,8 +178,12 @@ export class PhysicsService {
         this.runner = Matter.Runner.create();
         Matter.Runner.run(this.runner, this.engine);
 
-        this.render.canvas.addEventListener('click', (event) => this.handleCanvasClick(event));
+        this.render.canvas.addEventListener('mousedown', (event) => this.handleCanvasMouseDown(event));
         this.render.canvas.addEventListener('dblclick', (event) => this.handleCanvasDoubleClick(event));
+
+        // Track drags at the window level so they continue outside the canvas
+        window.addEventListener('mousemove', this.handleWindowMouseMove);
+        window.addEventListener('mouseup', this.handleWindowMouseUp);
     }
 
     public spawnBox(x: number | null, y: number | null, fileId: string, fileType: 'image' | 'archive' | 'folder' | 'document' = 'document', fileName = ''): void {
@@ -217,35 +222,78 @@ export class PhysicsService {
         return Math.min(Math.max(value, min), max);
     }
 
-    private handleCanvasClick(event: MouseEvent): void {
-        const rect = this.render.canvas.getBoundingClientRect();
-        const mouseX = event.clientX - rect.left;
-        const mouseY = event.clientY - rect.top;
+    private handleCanvasMouseDown(event: MouseEvent): void {
+        if (event.button !== 0 || !this.engine) return;
 
-        // Find all bodies under the mouse click point
+        const point = this.getCanvasPoint(event);
         const allBodies = Matter.Composite.allBodies(this.engine.world);
-        const clickedBodies = Matter.Query.point(allBodies, { x: mouseX, y: mouseY });
+        const clickedBodies = Matter.Query.point(allBodies, point);
 
         // The last match is the topmost rendered body
         const topBody = clickedBodies[clickedBodies.length - 1];
-        if (topBody && !topBody.isStatic) {
-            // Re-adding the body moves it to the end of the composite,
-            // so the renderer draws it above everything else
-            Matter.Composite.remove(this.engine.world, topBody);
-            Matter.Composite.add(this.engine.world, topBody);
-        }
+        if (!topBody || topBody.isStatic) return;
+
+        // Grab the body at the exact point the cursor holds it,
+        // converted into the body's local (rotated) frame
+        const dx = point.x - topBody.position.x;
+        const dy = point.y - topBody.position.y;
+        const cosA = Math.cos(topBody.angle);
+        const sinA = Math.sin(topBody.angle);
+
+        this.dragConstraint = Matter.Constraint.create({
+            pointA: point,
+            bodyB: topBody,
+            pointB: {
+                x: dx * cosA + dy * sinA,
+                y: -dx * sinA + dy * cosA
+            },
+            length: 0,
+            stiffness: 0.2,
+            render: { visible: false }
+        });
+
+        Matter.Composite.add(this.engine.world, this.dragConstraint);
+        Matter.Sleeping.set(topBody, false);
+        this.bringToFront(topBody);
+    }
+
+    private handleWindowMouseMove = (event: MouseEvent): void => {
+        if (!this.dragConstraint) return;
+        this.dragConstraint.pointA = this.getCanvasPoint(event);
+    };
+
+    private handleWindowMouseUp = (): void => {
+        this.releaseDrag();
+    };
+
+    private releaseDrag(): void {
+        if (!this.dragConstraint) return;
+        Matter.Composite.remove(this.engine.world, this.dragConstraint);
+        this.dragConstraint = null;
+    }
+
+    private bringToFront(body: Matter.Body): void {
+        // Re-adding the body moves it to the end of the composite,
+        // so the renderer draws it above everything else
+        Matter.Composite.remove(this.engine.world, body);
+        Matter.Composite.add(this.engine.world, body);
+    }
+
+    private getCanvasPoint(event: MouseEvent): { x: number; y: number } {
+        const rect = this.render.canvas.getBoundingClientRect();
+        return { x: event.clientX - rect.left, y: event.clientY - rect.top };
     }
 
     private handleCanvasDoubleClick(event: MouseEvent): void {
-        const rect = this.render.canvas.getBoundingClientRect();
-        const mouseX = event.clientX - rect.left;
-        const mouseY = event.clientY - rect.top;
+        const point = this.getCanvasPoint(event);
 
         // Find all bodies under the mouse click point
         const allBodies = Matter.Composite.allBodies(this.engine.world);
-        const clickedBodies = Matter.Query.point(allBodies, { x: mouseX, y: mouseY });
+        const clickedBodies = Matter.Query.point(allBodies, point);
 
-        for (const body of clickedBodies) {
+        // Restore the topmost body first
+        for (let i = clickedBodies.length - 1; i >= 0; i--) {
+            const body = clickedBodies[i];
             const stashedFile = this.bodyToFileMap.get(body.id);
             if (stashedFile) {
                 // 1. Restore file on filesystem & manifest
@@ -266,7 +314,13 @@ export class PhysicsService {
     }
 
     public destroy(): void {
-        if (this.render) Matter.Render.stop(this.render);
+        window.removeEventListener('mousemove', this.handleWindowMouseMove);
+        window.removeEventListener('mouseup', this.handleWindowMouseUp);
+        this.releaseDrag();
+        if (this.render) {
+            Matter.Render.stop(this.render);
+            this.render.canvas.remove();
+        }
         if (this.runner) Matter.Runner.stop(this.runner);
         if (this.engine) Matter.Engine.clear(this.engine);
         this.bodyToFileMap.clear();
