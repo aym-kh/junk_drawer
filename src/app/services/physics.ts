@@ -10,6 +10,7 @@ export class PhysicsService {
     private render!: Matter.Render;
     private runner!: Matter.Runner;
     private bodyToFileMap = new Map<number, string>(); // body.id -> file.id
+    private bodyTypeMap = new Map<number, string>(); // body.id -> fileType
 
     private drawerStorage = inject(DrawerStorageService);
 
@@ -36,52 +37,92 @@ export class PhysicsService {
             const allBodies = Matter.Composite.allBodies(this.engine.world);
 
             for (const body of allBodies) {
-                // Skip static boundary walls
                 if (body.isStatic) continue;
 
                 const { x, y } = body.position;
                 const angle = body.angle;
+                const fileType = this.bodyTypeMap.get(body.id) || 'document';
 
                 context.save();
                 context.translate(x, y);
                 context.rotate(angle);
 
-                // Document dimensions (44x54)
                 const w = 44;
                 const h = 54;
                 const hw = w / 2;
                 const hh = h / 2;
 
-                // 1. Draw Document Base (White/Light Paper)
-                context.fillStyle = '#f8fafc';
-                context.strokeStyle = '#cbd5e1';
-                context.lineWidth = 1.5;
+                if (fileType === 'image') {
+                    // --- IMAGE FILE ICON (Dark slate card with a picture/mountain preview motif) ---
+                    context.fillStyle = '#1e293b';
+                    context.strokeStyle = '#475569';
+                    context.lineWidth = 1.5;
+                    context.fillRect(-hw, -hh, w, h);
+                    context.strokeRect(-hw, -hh, w, h);
 
-                context.beginPath();
-                context.moveTo(-hw, -hh);
-                context.lineTo(hw - 10, -hh); // Fold corner cut
-                context.lineTo(hw, -hh + 10);
-                context.lineTo(hw, hh);
-                context.lineTo(-hw, hh);
-                context.closePath();
-                context.fill();
-                context.stroke();
+                    // Mini photo preview square inside
+                    context.fillStyle = '#38bdf8';
+                    context.fillRect(-hw + 6, -hh + 8, w - 12, 24);
+                    // Mountain landscape graphic
+                    context.fillStyle = '#bae6fd';
+                    context.beginPath();
+                    context.moveTo(-hw + 6, -hh + 24);
+                    context.lineTo(-hw + 16, -hh + 14);
+                    context.lineTo(-hw + 24, -hh + 22);
+                    context.lineTo(-hw + 32, -hh + 12);
+                    context.lineTo(-hw + w - 6, -hh + 24);
+                    context.closePath();
+                    context.fill();
 
-                // 2. Draw Folded Corner Triangles
-                context.fillStyle = '#e2e8f0';
-                context.beginPath();
-                context.moveTo(hw - 10, -hh);
-                context.lineTo(hw, -hh + 10);
-                context.lineTo(hw - 10, -hh + 10);
-                context.closePath();
-                context.fill();
-                context.stroke();
+                } else if (fileType === 'archive') {
+                    // --- ARCHIVE / ZIP ICON (Amber/Yellow zipped folder look) ---
+                    context.fillStyle = '#f59e0b';
+                    context.strokeStyle = '#d97706';
+                    context.lineWidth = 1.5;
+                    context.fillRect(-hw, -hh, w, h);
+                    context.strokeRect(-hw, -hh, w, h);
 
-                // 3. Draw Mini Text Lines on the Document
-                context.fillStyle = '#94a3b8';
-                context.fillRect(-hw + 8, -hh + 16, 20, 3);
-                context.fillRect(-hw + 8, -hh + 24, 24, 3);
-                context.fillRect(-hw + 8, -hh + 32, 16, 3);
+                    // Zipper line down the middle
+                    context.strokeStyle = '#fef3c7';
+                    context.setLineDash([2, 2]);
+                    context.beginPath();
+                    context.moveTo(0, -hh + 6);
+                    context.lineTo(0, hh - 6);
+                    context.stroke();
+                    context.setLineDash([]);
+
+                } else {
+                    // --- STANDARD DOCUMENT ICON (White paper with folded corner) ---
+                    context.fillStyle = '#f8fafc';
+                    context.strokeStyle = '#cbd5e1';
+                    context.lineWidth = 1.5;
+
+                    context.beginPath();
+                    context.moveTo(-hw, -hh);
+                    context.lineTo(hw - 10, -hh);
+                    context.lineTo(hw, -hh + 10);
+                    context.lineTo(hw, hh);
+                    context.lineTo(-hw, hh);
+                    context.closePath();
+                    context.fill();
+                    context.stroke();
+
+                    // Folded corner shadow
+                    context.fillStyle = '#e2e8f0';
+                    context.beginPath();
+                    context.moveTo(hw - 10, -hh);
+                    context.lineTo(hw, -hh + 10);
+                    context.lineTo(hw - 10, -hh + 10);
+                    context.closePath();
+                    context.fill();
+                    context.stroke();
+
+                    // Text lines
+                    context.fillStyle = '#94a3b8';
+                    context.fillRect(-hw + 8, -hh + 16, 20, 3);
+                    context.fillRect(-hw + 8, -hh + 24, 24, 3);
+                    context.fillRect(-hw + 8, -hh + 32, 16, 3);
+                }
 
                 context.restore();
             }
@@ -101,7 +142,7 @@ export class PhysicsService {
         this.render.canvas.addEventListener('dblclick', (event) => this.handleCanvasDoubleClick(event));
     }
 
-    public spawnBox(x: number, y: number, fileId: string): void {
+    public spawnBox(x: number, y: number, fileId: string, fileType: 'image' | 'archive' | 'folder' | 'document' = 'document'): void {
         if (!this.engine) return;
         const box = Matter.Bodies.rectangle(x || 150, y || 20, 50, 50, {
             restitution: 0.4,
@@ -113,6 +154,7 @@ export class PhysicsService {
 
         // Map body ID to file ID
         this.bodyToFileMap.set(box.id, fileId);
+        this.bodyTypeMap.set(box.id, fileType);
         Matter.Composite.add(this.engine.world, box);
     }
 
@@ -144,5 +186,6 @@ export class PhysicsService {
         if (this.runner) Matter.Runner.stop(this.runner);
         if (this.engine) Matter.Engine.clear(this.engine);
         this.bodyToFileMap.clear();
+        this.bodyTypeMap.clear();
     }
 }

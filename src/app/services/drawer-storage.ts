@@ -8,6 +8,7 @@ export interface StashedFileItem {
     stashedPath: string;
     x: number;
     y: number;
+    fileType: 'image' | 'archive' | 'folder' | 'document';
 }
 
 @Injectable({
@@ -75,7 +76,8 @@ export class DrawerStorageService {
                 originalPath,
                 stashedPath: stashedFileName,
                 x,
-                y
+                y,
+                fileType: getFileType(name)
             };
 
             const updated = [...this.stashedItems(), newItem];
@@ -110,4 +112,30 @@ export class DrawerStorageService {
             console.error('Error restoring file:', error);
         }
     }
+}
+
+
+function getFileType(filename: string): 'image' | 'archive' | 'folder' | 'document' {
+    if (!filename) return 'document';
+
+    const cleanName = filename.toLowerCase();
+    const parts = cleanName.split('.');
+    const ext = parts.length > 1 ? parts.pop() || '' : '';
+
+    // 1. Check extension or name for Images
+    if (['png', 'jpg', 'jpeg', 'gif', 'webp', 'svg', 'ico', 'bmp', 'avif'].includes(ext)) {
+        return 'image';
+    }
+
+    // 2. Check extension or name for Archives
+    if (['zip', 'rar', '7z', 'tar', 'gz', 'tgz', 'bz2', 'iso'].includes(ext)) {
+        return 'archive';
+    }
+
+    // 3. Check if it's a folder (no extension and doesn't look like a standard file)
+    if (!ext || cleanName.endsWith('/')) {
+        return 'folder';
+    }
+
+    return 'document';
 }
