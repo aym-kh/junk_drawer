@@ -13,11 +13,12 @@
     "windows": [
       {
         "title": "junk_drawer",
-        "width": 800,
-        "height": 600,
+        "width": 350,
+        "height": 450,
         "decorations": false,
         "transparent": true,
-        "alwaysOnTop": false
+        "resizable": false,
+        "shadow": false
       }
     ],
     "security": {

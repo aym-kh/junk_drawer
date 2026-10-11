@@ -2,8 +2,8 @@
     display: block;
     position: absolute;
     bottom: 0;
-    right: 40px;
-    width: 400px;
+    right: 0;
+    width: 350px;
 }
 
 .drawer-container {
