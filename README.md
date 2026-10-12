@@ -90,6 +90,16 @@ Create a production frontend build with:
 npm run build
 ```
 
+### Updating the app version
+
+Set the same SemVer version in the npm, Tauri, and Rust manifests and lockfiles with:
+
+```sh
+npm run version:set -- 0.1.0-beta.4
+```
+
+Then update `CHANGELOG.md`, review and commit the changes, and push a matching beta tag to trigger the release workflow.
+
 ## Sound credits
 
 Sound effects by [freesound_community](https://pixabay.com/users/freesound_community-46691455/) from Pixabay:

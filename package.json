@@ -6,6 +6,7 @@
     "start": "ng serve",
     "build": "ng build",
     "watch": "ng build --watch --configuration development",
+    "version:set": "node scripts/set-version.js",
     "tauri": "tauri"
   },
   "private": true,
