@@ -2,7 +2,7 @@ import { inject, Injectable, signal } from '@angular/core';
 import { getCurrentWindow } from '@tauri-apps/api/window';
 import { desktopDir, join } from '@tauri-apps/api/path';
 import { readDir } from '@tauri-apps/plugin-fs';
-import { register } from '@tauri-apps/plugin-global-shortcut';
+import { register, unregister, ShortcutEvent } from '@tauri-apps/plugin-global-shortcut';
 import { DrawerStorageService } from './drawer-storage';
 import { PhysicsService } from './physics';
 import { AudioService } from './audio';
@@ -60,10 +60,10 @@ export class DesktopFileService {
     private async initShortcutListeners(): Promise<void> {
         try {
             // System-wide hotkeys, so the sweep works even from the desktop itself
-            await register('CommandOrControl+Shift+D', (event) => {
+            await this.registerShortcut('CommandOrControl+Shift+D', (event) => {
                 if (event.state === 'Pressed') this.sweepDesktop();
             });
-            await register('CommandOrControl+Shift+R', (event) => {
+            await this.registerShortcut('CommandOrControl+Shift+R', (event) => {
                 if (event.state === 'Pressed') this.restoreAll();
             });
         } catch (error) {
@@ -81,6 +81,23 @@ export class DesktopFileService {
                     this.restoreAll();
                 }
             });
+        }
+    }
+
+    // Register a system-wide hotkey. The plugin keeps its registrations
+    // process-wide, so a webview reload (dev HMR) finds the hotkey "already
+    // registered" and still bound to a dead handler channel — drop that and
+    // bind the fresh one. Any other rejection (e.g. another app owns the
+    // hotkey) propagates to the window-shortcut fallback.
+    private async registerShortcut(shortcut: string, handler: (event: ShortcutEvent) => void): Promise<void> {
+        try {
+            await register(shortcut, handler);
+        } catch (error) {
+            const message = error instanceof Error ? error.message : String(error);
+            if (!message.includes('already registered')) throw error;
+
+            await unregister(shortcut);
+            await register(shortcut, handler);
         }
     }
 
