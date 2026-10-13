@@ -1,5 +1,13 @@
 import { Injectable, signal } from '@angular/core';
+import { invoke } from '@tauri-apps/api/core';
+import { appDataDir, join } from '@tauri-apps/api/path';
 import { BaseDirectory, mkdir, readTextFile, writeTextFile, exists, copyFile, remove } from '@tauri-apps/plugin-fs';
+
+interface NativeFileIcon {
+    width: number;
+    height: number;
+    pixels: number[];
+}
 
 export interface StashedFileItem {
     id: string;
@@ -9,6 +17,7 @@ export interface StashedFileItem {
     x: number;
     y: number;
     fileType: 'image' | 'archive' | 'folder' | 'document';
+    iconData?: string;
 }
 
 @Injectable({
@@ -42,6 +51,7 @@ export class DrawerStorageService {
                 const content = await readTextFile(this.manifestFileName, { baseDir: BaseDirectory.AppData });
                 const items: StashedFileItem[] = JSON.parse(content);
                 this.stashedItems.set(items);
+                void this.loadMissingIcons(items);
             }
         } catch (error) {
             console.error('Failed to load junk manifest:', error);
@@ -60,6 +70,7 @@ export class DrawerStorageService {
 
     public async stashFile(originalPath: string, name: string, x: number, y: number): Promise<void> {
         try {
+            const iconData = await this.getIconData(originalPath);
             const stashedFileName = `${Date.now()}_${name}`;
 
             // Copy file to AppData storage and then remove original from desktop to simulate "moving"
@@ -77,7 +88,8 @@ export class DrawerStorageService {
                 stashedPath: stashedFileName,
                 x,
                 y,
-                fileType: getFileType(name)
+                fileType: getFileType(name),
+                iconData: iconData ?? undefined
             };
 
             const updated = [...this.stashedItems(), newItem];
@@ -85,6 +97,54 @@ export class DrawerStorageService {
             await this.saveManifest(updated);
         } catch (error) {
             console.error('Error stashing file:', error);
+        }
+    }
+
+    private async loadMissingIcons(items: StashedFileItem[]): Promise<void> {
+        try {
+            const icons = new Map<string, string>();
+            const directory = await appDataDir();
+
+            for (const item of items) {
+                if (item.iconData) continue;
+
+                try {
+                    const path = await join(directory, item.stashedPath);
+                    const iconData = await this.getIconData(path);
+                    if (iconData) icons.set(item.id, iconData);
+                } catch (error) {
+                    console.warn(`Failed to load icon for stashed file "${item.name}":`, error);
+                }
+            }
+
+            if (icons.size === 0) return;
+
+            const updated = this.stashedItems().map(item => {
+                const iconData = icons.get(item.id);
+                return !item.iconData && iconData ? { ...item, iconData } : item;
+            });
+            this.stashedItems.set(updated);
+            await this.saveManifest(updated);
+        } catch (error) {
+            console.error('Failed to load native icons for stashed files:', error);
+        }
+    }
+
+    private async getIconData(path: string): Promise<string | null> {
+        try {
+            const icon = await invoke<NativeFileIcon>('get_file_icon', { path });
+            const canvas = document.createElement('canvas');
+            canvas.width = icon.width;
+            canvas.height = icon.height;
+            const context = canvas.getContext('2d');
+            if (!context) throw new Error('Could not create a canvas context for the file icon');
+
+            const pixels = new Uint8ClampedArray(icon.pixels);
+            context.putImageData(new ImageData(pixels, icon.width, icon.height), 0, 0);
+            return canvas.toDataURL('image/png');
+        } catch (error) {
+            console.warn(`Failed to retrieve native icon for "${path}":`, error);
+            return null;
         }
     }
 

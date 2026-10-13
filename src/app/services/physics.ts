@@ -12,6 +12,7 @@ export class PhysicsService {
     private runner!: Matter.Runner;
     private bodyToFileMap = new Map<number, { id: string; name: string }>(); // body.id -> stashed file
     private bodyTypeMap = new Map<number, string>(); // body.id -> fileType
+    private fileIconMap = new Map<string, HTMLImageElement>();
     private worldWidth = 350;
     private worldHeight = 350;
     private dragConstraint: Matter.Constraint | null = null;
@@ -38,7 +39,7 @@ export class PhysicsService {
             }
         });
 
-        // Custom render hook to draw document icons instead of plain rectangles
+        // Draw native file icons with the illustrated icons as a fallback.
         Matter.Events.on(this.render, 'afterRender', () => {
             const context = this.render.context;
             const allBodies = Matter.Composite.allBodies(this.engine.world);
@@ -55,12 +56,16 @@ export class PhysicsService {
                 const { x, y } = body.position;
                 const angle = body.angle;
                 const fileType = this.bodyTypeMap.get(body.id) || 'document';
+                const stashedFile = this.bodyToFileMap.get(body.id);
+                const icon = stashedFile ? this.fileIconMap.get(stashedFile.id) : undefined;
 
                 context.save();
                 context.translate(x, y);
                 context.rotate(angle);
 
-                if (fileType === 'image') {
+                if (icon?.complete && icon.naturalWidth > 0) {
+                    context.drawImage(icon, -hw, -hw, w, w);
+                } else if (fileType === 'image') {
                     // --- IMAGE FILE ICON (Dark slate card with a picture/mountain preview motif) ---
                     context.fillStyle = '#1e293b';
                     context.strokeStyle = '#475569';
@@ -152,7 +157,6 @@ export class PhysicsService {
                 context.restore();
 
                 // Screen-aligned name label below the icon
-                const stashedFile = this.bodyToFileMap.get(body.id);
                 if (stashedFile?.name) {
                     context.save();
                     context.font = '600 10px system-ui, sans-serif';
@@ -186,8 +190,22 @@ export class PhysicsService {
         window.addEventListener('mouseup', this.handleWindowMouseUp);
     }
 
-    public spawnBox(x: number | null, y: number | null, fileId: string, fileType: 'image' | 'archive' | 'folder' | 'document' = 'document', fileName = ''): void {
+    public spawnBox(x: number | null, y: number | null, fileId: string, fileType: 'image' | 'archive' | 'folder' | 'document' = 'document', fileName = '', iconData?: string): void {
         if (!this.engine) return;
+        if (iconData) this.setFileIcon(fileId, iconData);
+
+        const existingBody = Matter.Composite.allBodies(this.engine.world).find(body =>
+            this.bodyToFileMap.get(body.id)?.id === fileId
+        );
+        if (existingBody) {
+            if (x !== null && y !== null) {
+                Matter.Body.setPosition(existingBody, {
+                    x: this.clamp(x, 25, this.worldWidth - 25),
+                    y: this.clamp(y, 25, this.worldHeight - 25)
+                });
+            }
+            return;
+        }
 
         // Aim at the drop point, or pick a random spot in the drawer
         const margin = 45;
@@ -216,6 +234,17 @@ export class PhysicsService {
         this.bodyTypeMap.set(box.id, fileType);
         Matter.Composite.add(this.engine.world, box);
         this.audioService.playThud();
+    }
+
+    public setFileIcon(fileId: string, iconData: string): void {
+        const icon = new Image();
+        icon.onload = () => this.fileIconMap.set(fileId, icon);
+        icon.onerror = () => console.warn(`Failed to decode native icon for "${fileId}"`);
+        icon.src = iconData;
+    }
+
+    public hasFile(fileId: string): boolean {
+        return Array.from(this.bodyToFileMap.values()).some(file => file.id === fileId);
     }
 
     private clamp(value: number, min: number, max: number): number {
@@ -361,6 +390,7 @@ export class PhysicsService {
         Matter.Composite.remove(this.engine.world, body);
         this.bodyToFileMap.delete(body.id);
         this.bodyTypeMap.delete(body.id);
+        this.fileIconMap.delete(stashedFile.id);
     }
 
     private truncateName(name: string, maxLength = 18): string {
@@ -378,6 +408,7 @@ export class PhysicsService {
 
         this.bodyToFileMap.clear();
         this.bodyTypeMap.clear();
+        this.fileIconMap.clear();
     }
 
     public destroy(): void {
@@ -392,5 +423,6 @@ export class PhysicsService {
         if (this.engine) Matter.Engine.clear(this.engine);
         this.bodyToFileMap.clear();
         this.bodyTypeMap.clear();
+        this.fileIconMap.clear();
     }
 }

@@ -17,7 +17,8 @@ import { DrawerStorageService } from '../../services/drawer-storage';
 export class CanvasPhysicsComponent implements OnInit, OnDestroy {
   @ViewChild('canvasContainer', { static: true }) canvasContainer!: ElementRef<HTMLDivElement>;
   @Input() drawerOpen = false;
-  private hasInitializedItems = false;
+  private initializedItemIds = new Set<string>();
+  private itemIcons = new Map<string, string>();
 
   private physicsService = inject(PhysicsService);
   private desktopFileService = inject(DesktopFileService);
@@ -26,12 +27,26 @@ export class CanvasPhysicsComponent implements OnInit, OnDestroy {
   constructor() {
     effect(() => {
       const items = this.drawerStorage.stashedItems();
-      if (items.length > 0 && !this.hasInitializedItems && this.physicsService) {
-        this.hasInitializedItems = true;
-        // Scatter restored items around the drawer like they were left in it
-        items.forEach((item) => {
-          this.physicsService.spawnBox(null, null, item.id, item.fileType, item.name);
-        });
+      const activeIds = new Set(items.map(item => item.id));
+
+      for (const id of this.initializedItemIds) {
+        if (!activeIds.has(id)) {
+          this.initializedItemIds.delete(id);
+          this.itemIcons.delete(id);
+        }
+      }
+
+      for (const item of items) {
+        if (!this.initializedItemIds.has(item.id)) {
+          this.initializedItemIds.add(item.id);
+          if (!this.physicsService.hasFile(item.id)) {
+            this.physicsService.spawnBox(null, null, item.id, item.fileType, item.name, item.iconData);
+          }
+        } else if (item.iconData && this.itemIcons.get(item.id) !== item.iconData) {
+          this.physicsService.setFileIcon(item.id, item.iconData);
+        }
+
+        if (item.iconData) this.itemIcons.set(item.id, item.iconData);
       }
     });
   }

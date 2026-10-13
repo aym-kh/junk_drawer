@@ -46,7 +46,7 @@ export class DesktopFileService {
                         const fileName = filePath.split(/[/\\]/).pop() || 'Unknown File';
                         await this.drawerStorage.stashFile(filePath, fileName, position.x, position.y);
                         const newItem = this.drawerStorage.stashedItems().slice(-1)[0];
-                        this.physicsService.spawnBox(position.x, position.y, newItem.id, newItem.fileType, newItem.name);
+                        this.physicsService.spawnBox(position.x, position.y, newItem.id, newItem.fileType, newItem.name, newItem.iconData);
                     }
                 } else if (event.payload.type === 'leave') {
                     this.isHovering.set(false);
@@ -113,7 +113,7 @@ export class DesktopFileService {
                 const filePath = await join(desktopPath, entry.name);
                 await this.drawerStorage.stashFile(filePath, entry.name, 0, 0);
                 const newItem = this.drawerStorage.stashedItems().slice(-1)[0];
-                this.physicsService.spawnBox(null, null, newItem.id, newItem.fileType, newItem.name);
+                this.physicsService.spawnBox(null, null, newItem.id, newItem.fileType, newItem.name, newItem.iconData);
             }
         } catch (error) {
             console.error('Failed to sweep desktop into the drawer:', error);
