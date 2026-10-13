@@ -1,11 +1,24 @@
 <div class="drawer-container" [class.open]="isOpen()" [class.overstuffed]="isOverstuffed()">
-    <!-- Top surface of the desk / drawer header where mug/plant items sit -->
-    <div class="drawer-top-surface" (click)="toggleDrawer()">
-        <div class="drawer-handle"></div>
+    <div class="drawer-surface" (click)="toggleDrawer()">
+        <div class="drawer-surface-handle"></div>
+        <div class="drawer-surface-edge"></div>
+        <div class="drawer-surface-wall"></div>
     </div>
-
-    <!-- The sliding interior body where physics icons live -->
     <div class="drawer-body">
-        <app-canvas-physics [drawerOpen]="isOpen()"></app-canvas-physics>
+        <!-- LEFT WALLL OF THE DRAWER -->
+        <div class="drawer-surface-2">
+            <div class="drawer-surface-2-edge"></div>
+            <div class="drawer-surface-2-wall"></div>
+        </div>
+
+        <div class="drawer-floor">
+            <app-canvas-physics [drawerOpen]="isOpen()"></app-canvas-physics>
+        </div>
+
+        <!-- RIGHT WALLL OF THE DRAWER -->
+        <div class="drawer-surface-3">
+            <div class="drawer-surface-3-wall"></div>
+            <div class="drawer-surface-3-edge"></div>
+        </div>
     </div>
 </div>
