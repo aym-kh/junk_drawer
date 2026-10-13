@@ -263,11 +263,16 @@ export class PhysicsService {
 
     private handleWindowMouseMove = (event: MouseEvent): void => {
         if (!this.dragConstraint) return;
-        this.dragConstraint.pointA = this.getCanvasPoint(event);
+        this.dragConstraint.pointA = this.getClampedDragPoint(event);
     };
 
-    private handleWindowMouseUp = (): void => {
+    private handleWindowMouseUp = (event: MouseEvent): void => {
+        const body = this.dragConstraint?.bodyB;
         this.releaseDrag();
+
+        if (body && this.isOutsideFloor(event)) {
+            this.restoreBody(body);
+        }
     };
 
     private releaseDrag(): void {
@@ -288,6 +293,48 @@ export class PhysicsService {
         return { x: event.clientX - rect.left, y: event.clientY - rect.top };
     }
 
+    private isOutsideFloor(event: MouseEvent): boolean {
+        const rect = this.render.canvas.getBoundingClientRect();
+        return event.clientX < rect.left
+            || event.clientX > rect.right
+            || event.clientY < rect.top
+            || event.clientY > rect.bottom;
+    }
+
+    private getClampedDragPoint(event: MouseEvent): { x: number; y: number } {
+        const constraint = this.dragConstraint;
+        if (!constraint?.bodyB) return this.getCanvasPoint(event);
+
+        const body = constraint.bodyB;
+        const pointer = this.getCanvasPoint(event);
+        const grabOffset = Matter.Vector.rotate(constraint.pointB, body.angle);
+        const targetCenter = {
+            x: pointer.x - grabOffset.x,
+            y: pointer.y - grabOffset.y
+        };
+        const halfWidth = Math.max(
+            body.position.x - body.bounds.min.x,
+            body.bounds.max.x - body.position.x
+        );
+        const halfHeight = Math.max(
+            body.position.y - body.bounds.min.y,
+            body.bounds.max.y - body.position.y
+        );
+        const minX = Math.min(halfWidth, this.worldWidth / 2);
+        const minY = Math.min(halfHeight, this.worldHeight / 2);
+        const maxX = Math.max(minX, this.worldWidth - halfWidth);
+        const maxY = Math.max(minY, this.worldHeight - halfHeight);
+        const clampedCenter = {
+            x: this.clamp(targetCenter.x, minX, maxX),
+            y: this.clamp(targetCenter.y, minY, maxY)
+        };
+
+        return {
+            x: clampedCenter.x + grabOffset.x,
+            y: clampedCenter.y + grabOffset.y
+        };
+    }
+
     private handleCanvasDoubleClick(event: MouseEvent): void {
         const point = this.getCanvasPoint(event);
 
@@ -298,19 +345,22 @@ export class PhysicsService {
         // Restore the topmost body first
         for (let i = clickedBodies.length - 1; i >= 0; i--) {
             const body = clickedBodies[i];
-            const stashedFile = this.bodyToFileMap.get(body.id);
-            if (stashedFile) {
-                // 1. Restore file on filesystem & manifest
-                this.drawerStorage.restoreFile(stashedFile.id);
-
-                this.audioService.playPop();
-                // 2. Remove body from physics world
-                Matter.Composite.remove(this.engine.world, body);
-                this.bodyToFileMap.delete(body.id);
-                this.bodyTypeMap.delete(body.id);
+            if (this.bodyToFileMap.has(body.id)) {
+                this.restoreBody(body);
                 break;
             }
         }
+    }
+
+    private restoreBody(body: Matter.Body): void {
+        const stashedFile = this.bodyToFileMap.get(body.id);
+        if (!stashedFile) return;
+
+        this.drawerStorage.restoreFile(stashedFile.id);
+        this.audioService.playPop();
+        Matter.Composite.remove(this.engine.world, body);
+        this.bodyToFileMap.delete(body.id);
+        this.bodyTypeMap.delete(body.id);
     }
 
     private truncateName(name: string, maxLength = 18): string {
