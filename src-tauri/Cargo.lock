@@ -2024,7 +2024,7 @@ dependencies = [
 
 [[package]]
 name = "junk_drawer"
-version = "0.1.0-beta.3"
+version = "0.1.0-beta.4"
 dependencies = [
  "file_icon_provider",
  "serde",
